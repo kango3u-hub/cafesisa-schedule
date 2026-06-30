@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>카페시사 주간 근무표</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --forest:#1f3326;
+    --forest-2:#2c4534;
+    --cream:#f7f3e8;
+    --cream-2:#efe8d6;
+    --line:#1f332633;
+    --ink:#1f3326;
+    --muted:#6b6354;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    background:var(--cream-2);
+    color:var(--ink);
+    padding:24px 16px 80px;
+  }
+  .wrap{max-width:1000px;margin:0 auto;}
+
+  /* ===== Control panel ===== */
+  .panel{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:18px;
+    margin-bottom:20px;
+  }
+  .panel h2{
+    margin:0 0 14px;
+    font-size:15px;
+    letter-spacing:.02em;
+    color:var(--forest);
+  }
+  .form-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    align-items:center;
+  }
+  .form-row input[type=text]{
+    flex:1 1 90px;
+    min-width:90px;
+  }
+  select, input[type=text], input[type=number]{
+    border:1px solid #d8d2c0;
+    border-radius:8px;
+    padding:9px 10px;
+    font-size:14px;
+    font-family:inherit;
+    background:#fff;
+    color:var(--ink);
+  }
+  .time-pair{display:flex;align-items:center;gap:6px;}
+  .time-pair select{width:74px;}
+  .swatches{display:flex;gap:6px;flex-wrap:wrap;}
+  .swatch{
+    width:26px;height:26px;border-radius:50%;
+    border:2px solid transparent;cursor:pointer;
+  }
+  .swatch.active{border-color:var(--forest);}
+  .add-btn{
+    background:var(--forest);
+    color:var(--cream);
+    border:none;
+    border-radius:8px;
+    padding:10px 18px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .add-btn:hover{background:var(--forest-2);}
+
+  .shift-list{
+    margin-top:14px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .chip{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:5px 6px 5px 10px;
+    border-radius:20px;
+    font-size:12px;
+    color:#fff;
+  }
+  .chip button{
+    background:rgba(255,255,255,.3);
+    border:none;
+    color:#fff;
+    width:18px;height:18px;
+    border-radius:50%;
+    cursor:pointer;
+    font-size:11px;
+    line-height:1;
+  }
+
+  /* ===== Schedule output ===== */
+  #capture{
+    background:var(--cream);
+    border:1px solid var(--forest);
+    border-radius:4px;
+    padding:28px 24px 20px;
+  }
+  .title-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    border-bottom:3px solid var(--forest);
+    padding-bottom:12px;
+    margin-bottom:4px;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .title-row h1{
+    font-size:20px;
+    margin:0;
+    letter-spacing:.02em;
+    color:var(--forest);
+  }
+  .title-row input.title-edit{
+    font-size:20px;
+    font-weight:700;
+    border:none;
+    background:transparent;
+    color:var(--forest);
+    width:280px;
+    padding:0;
+  }
+  .hours-note{
+    font-size:11px;
+    color:var(--muted);
+  }
+  .hours-note input{
+    border:none;background:transparent;font-size:11px;color:var(--muted);width:160px;padding:0;
+  }
+  .date-row{
+    font-size:11px;
+    color:var(--muted);
+    margin-bottom:6px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .date-row input[type=date]{
+    border:1px solid #d8d2c0;
+    border-radius:6px;
+    padding:3px 6px;
+    font-size:11px;
+    font-family:inherit;
+    color:var(--ink);
+  }
+  th .day-date{
+    display:block;
+    font-size:10px;
+    font-weight:400;
+    color:var(--cream-2);
+    margin-top:2px;
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    table-layout:auto;
+    margin-top:10px;
+  }
+  th, td{
+    border:1px solid var(--line);
+    text-align:center;
+    font-size:12px;
+  }
+  th{
+    background:var(--forest);
+    color:var(--cream);
+    padding:8px 2px;
+    font-weight:600;
+  }
+  .time-col{
+    width:54px;
+    background:#fff;
+    color:var(--muted);
+    font-size:11px;
+    padding:0;
+  }
+  .cell{
+    height:22px;
+    padding:0 2px;
+    position:relative;
+    color:#fff;
+    font-weight:700;
+    font-size:11px;
+    word-break:keep-all;
+  }
+  .empty-cell{background:#fff;}
+  .name-label{
+    position:sticky;
+    top:0;
+  }
+
+  .legend{
+    margin-top:14px;
+    font-size:10.5px;
+    color:var(--muted);
+    border-top:1px dashed var(--line);
+    padding-top:8px;
+  }
+
+  .dl-row{
+    text-align:center;
+    margin-top:18px;
+  }
+  .dl-btn{
+    background:var(--forest);
+    color:var(--cream);
+    border:none;
+    border-radius:8px;
+    padding:12px 26px;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .dl-btn:hover{background:var(--forest-2);}
+  .hint{
+    text-align:center;
+    font-size:11px;
+    color:var(--muted);
+    margin-top:8px;
+  }
+  .loading{opacity:.5;pointer-events:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="panel">
+    <h2>근무자 추가</h2>
+    <div class="form-row">
+      <input type="text" id="nameInput" placeholder="이름 (예: 소연)">
+      <select id="dayInput">
+        <option value="0">월</option>
+        <option value="1">화</option>
+        <option value="2">수</option>
+        <option value="3">목</option>
+        <option value="4">금</option>
+        <option value="5">토</option>
+        <option value="6">일</option>
+      </select>
+      <div class="time-pair">
+        <select id="startInput"></select>
+        <span>~</span>
+        <select id="endInput"></select>
+      </div>
+      <div class="swatches" id="swatches"></div>
+      <button class="add-btn" id="addBtn">+ 추가</button>
+    </div>
+    <div class="shift-list" id="shiftList"></div>
+  </div>
+
+  <div id="capture">
+    <div class="title-row">
+      <input class="title-edit" id="titleInput" value="주간 근무 시간표">
+      <div class="hours-note">매장 운영 <input id="hoursInput" value="8시 - 22시"></div>
+    </div>
+    <div class="date-row">
+      <label for="weekStartInput">이번 주 월요일 날짜</label>
+      <input type="date" id="weekStartInput">
+    </div>
+    <table id="grid"></table>
+    <div class="legend">참고: 색칠된 칸은 해당 시간 근무를 의미합니다. 마지막 줄(22시~ 마감)은 마감 근무입니다.</div>
+  </div>
+
+  <div class="dl-row">
+    <button class="dl-btn" id="dlBtn">📥 이미지 저장 / 공유</button>
+  </div>
+  <div class="hint" id="syncStatus">불러오는 중...</div>
+
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbz3O5tfg29eTu4GGcr19voFANqFN6DUl7EPJ72K_yaJ8n2hU18ViBoonlFR2VGcSsRY/exec";
+
+const DAYS = ['월','화','수','목','금','토','일'];
+const HOURS = []; // 6..21
+for(let h=6; h<=21; h++) HOURS.push(h);
+const ROW_LABELS = HOURS.map(h => h+'시').concat(['22시~ 마감']);
+const PALETTE = ['#8a8a6b','#d9a98c','#c9a96e','#3a3a3a','#5b1f1f','#a3c7c7','#9b6b3c','#c9c9c9','#b9d6b0','#7a8fa6','#c98a9e','#5e7a4f'];
+
+let shifts = [];
+let activeColor = PALETTE[0];
+
+function rowIndexForHour(h){
+  if(h <= 21) return h - 6;
+  return HOURS.length; // last merged row
+}
+
+function populateTimeSelects(){
+  const s = document.getElementById('startInput');
+  const e = document.getElementById('endInput');
+  s.innerHTML=''; e.innerHTML='';
+  for(let h=6; h<=22; h++){
+    const label = h===22 ? '22시(마감)' : h+'시';
+    s.innerHTML += `<option value="${h}">${label}</option>`;
+    e.innerHTML += `<option value="${h}">${label}</option>`;
+  }
+  s.value=6; e.value=12;
+}
+
+function buildSwatches(){
+  const box = document.getElementById('swatches');
+  box.innerHTML = PALETTE.map((c,i)=>
+    `<div class="swatch ${c===activeColor?'active':''}" style="background:${c}" data-color="${c}"></div>`
+  ).join('');
+  box.querySelectorAll('.swatch').forEach(sw=>{
+    sw.addEventListener('click', ()=>{
+      activeColor = sw.dataset.color;
+      buildSwatches();
+    });
+  });
+}
+
+function renderShiftList(){
+  const list = document.getElementById('shiftList');
+  list.innerHTML = shifts.map(s=>
+    `<div class="chip" style="background:${s.color}">
+      ${DAYS[s.day]} ${s.name} ${s.start}시~${s.end===22?'마감':s.end+'시'}
+      <button data-id="${s.id}">×</button>
+    </div>`
+  ).join('');
+  list.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      shifts = shifts.filter(s=>s.id !== b.dataset.id);
+      save(); renderAll();
+    });
+  });
+}
+
+function getWeekDates(){
+  const val = document.getElementById('weekStartInput').value;
+  if(!val) return null;
+  const start = new Date(val + 'T00:00:00');
+  const dates = [];
+  for(let i=0;i<7;i++){
+    const d = new Date(start);
+    d.setDate(start.getDate()+i);
+    dates.push(`${d.getMonth()+1}/${d.getDate()}`);
+  }
+  return dates;
+}
+
+function buildDayGrid(d){
+  const dayShifts = shifts.filter(s=>s.day===d).sort((a,b)=>a.start-b.start);
+  const laneEndRow=[];
+  const laneOf={};
+  const totalRows = ROW_LABELS.length;
+  dayShifts.forEach(s=>{
+    const startRow = rowIndexForHour(s.start);
+    const endRow = s.end===22 ? totalRows : rowIndexForHour(s.end);
+    let placedLane=-1;
+    for(let lane=0; lane<laneEndRow.length; lane++){
+      if(startRow >= laneEndRow[lane]){ placedLane=lane; break; }
+    }
+    if(placedLane===-1){ placedLane=laneEndRow.length; laneEndRow.push(0); }
+    laneEndRow[placedLane]=endRow;
+    laneOf[s.id]=placedLane;
+  });
+  const laneCount = Math.max(laneEndRow.length,1);
+  const grid = Array.from({length:laneCount}, ()=>Array(totalRows).fill(null));
+  dayShifts.forEach(s=>{
+    const lane=laneOf[s.id];
+    const startRow=rowIndexForHour(s.start);
+    const endRow = s.end===22 ? totalRows : rowIndexForHour(s.end);
+    for(let r=startRow;r<endRow;r++){
+      grid[lane][r] = (r===startRow) ? {shift:s, span:endRow-startRow} : 'skip';
+    }
+  });
+  return {laneCount, grid};
+}
+
+function renderGrid(){
+  const table = document.getElementById('grid');
+  const weekDates = getWeekDates();
+  const totalRows = ROW_LABELS.length;
+  const dayGrids = DAYS.map((_,d)=>buildDayGrid(d));
+
+  let html = '<tr><th class="time-col">시간</th>' + DAYS.map((d,i)=>
+    `<th colspan="${dayGrids[i].laneCount}">${d}${weekDates ? `<span class="day-date">${weekDates[i]}</span>` : ''}</th>`
+  ).join('') + '</tr>';
+
+  for(let r=0; r<totalRows; r++){
+    html += `<tr><td class="time-col">${ROW_LABELS[r]}</td>`;
+    for(let d=0; d<7; d++){
+      const {laneCount, grid} = dayGrids[d];
+      for(let lane=0; lane<laneCount; lane++){
+        const val = grid[lane][r];
+        if(val === 'skip') continue;
+        if(val && val.shift){
+          html += `<td class="cell" style="background:${val.shift.color}" rowspan="${val.span}">${val.shift.name}</td>`;
+        } else {
+          html += `<td class="empty-cell"></td>`;
+        }
+      }
+    }
+    html += '</tr>';
+  }
+  table.innerHTML = html;
+}
+
+function renderAll(){
+  renderShiftList();
+  renderGrid();
+}
+
+async function save(){
+  const meta = {
+    title: document.getElementById('titleInput').value,
+    hours: document.getElementById('hoursInput').value,
+    weekStart: document.getElementById('weekStartInput').value
+  };
+  const status = document.getElementById('syncStatus');
+  if(status) status.textContent = '저장 중...';
+  try{
+    await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'saveSchedule', shifts, meta })
+    });
+    if(status) status.textContent = '✓ 저장됨 (구글시트와 동기화)';
+  }catch(e){
+    console.error('save failed', e);
+    if(status) status.textContent = '저장 실패 — 인터넷 연결을 확인해주세요';
+  }
+}
+
+async function load(){
+  const status = document.getElementById('syncStatus');
+  try{
+    const res = await fetch(`${API_URL}?action=getSchedule`);
+    const data = await res.json();
+    shifts = (data.shifts || []).map(s => ({...s, id: String(s.id)}));
+    const meta = data.meta || {};
+    if(meta.title) document.getElementById('titleInput').value = meta.title;
+    if(meta.hours) document.getElementById('hoursInput').value = meta.hours;
+    if(meta.weekStart) document.getElementById('weekStartInput').value = meta.weekStart;
+    if(status) status.textContent = '✓ 불러오기 완료';
+  }catch(e){
+    console.error('load failed', e);
+    if(status) status.textContent = '불러오기 실패 — 새로고침 해보세요';
+  }
+  renderAll();
+}
+
+document.getElementById('addBtn').addEventListener('click', ()=>{
+  const name = document.getElementById('nameInput').value.trim();
+  if(!name){ alert('이름을 입력해주세요'); return; }
+  const day = parseInt(document.getElementById('dayInput').value);
+  const start = parseInt(document.getElementById('startInput').value);
+  const end = parseInt(document.getElementById('endInput').value);
+  if(end <= start){ alert('종료 시간이 시작 시간보다 늦어야 해요'); return; }
+  shifts.push({id: Date.now()+'', name, day, start, end, color: activeColor});
+  document.getElementById('nameInput').value='';
+  save(); renderAll();
+});
+
+document.getElementById('titleInput').addEventListener('input', save);
+document.getElementById('hoursInput').addEventListener('input', save);
+document.getElementById('weekStartInput').addEventListener('change', ()=>{ save(); renderGrid(); });
+
+document.getElementById('dlBtn').addEventListener('click', async ()=>{
+  const target = document.getElementById('capture');
+  const btn = document.getElementById('dlBtn');
+  btn.textContent = '생성 중...';
+  btn.classList.add('loading');
+  try{
+    const canvas = await html2canvas(target, {scale:2, backgroundColor:'#f7f3e8'});
+
+    // Try native share sheet first (best on mobile in-app browsers)
+    if(navigator.canShare){
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+      const file = new File([blob], '카페시사_근무표.png', {type:'image/png'});
+      if(navigator.canShare({files:[file]})){
+        try{
+          await navigator.share({files:[file], title:'카페시사 근무표'});
+          btn.textContent = '📥 이미지 저장 / 공유';
+          btn.classList.remove('loading');
+          return;
+        }catch(shareErr){
+          // user cancelled share or share failed — fall through to next method
+        }
+      }
+    }
+
+    // Fallback: open image in a new tab so the person can long-press → save
+    const dataUrl = canvas.toDataURL('image/png');
+    const win = window.open();
+    if(win){
+      win.document.write(`<html><body style="margin:0;background:#222;"><img src="${dataUrl}" style="width:100%;display:block;"><p style="font-family:sans-serif;color:#fff;text-align:center;padding:10px;">이미지를 길게 눌러 "사진에 저장"을 선택하세요</p></body></html>`);
+    } else {
+      alert('새 창이 차단되었어요. 브라우저의 팝업 차단을 해제하거나, 사파리/크롬 앱에서 다시 열어주세요.');
+    }
+  }catch(e){
+    alert('이미지 생성에 실패했어요. 다시 시도해주세요.');
+  }
+  btn.textContent = '📥 이미지 저장 / 공유';
+  btn.classList.remove('loading');
+});
+
+populateTimeSelects();
+buildSwatches();
+load();
+</script>
+</body>
+</html>
